@@ -301,6 +301,26 @@ jobs:
         size /var/lib
         size /var/
 
+    - name: Debug package recipe
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== Working directory ==="
+        pwd
+
+        echo "=== repo.json ==="
+        jq 'del(.pkg_format)' repo.json
+
+        echo "=== Package recipe on host ==="
+        find . -type f -path '*/llama-cpp-stb/build.sh' -print
+
+        echo "=== Docker runner script ==="
+        sed -n '1,240p' scripts/run-docker.sh
+
+        echo "=== Build package script options ==="
+        ./build-package.sh --help || true
+
     - name: Build packages
       if: ${{ steps.build-info.outputs.skip-building != 'true' }}
       run: |
