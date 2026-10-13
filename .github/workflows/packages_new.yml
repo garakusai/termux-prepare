@@ -321,6 +321,23 @@ jobs:
         echo "=== Build package script options ==="
         ./build-package.sh --help || true
 
+    - name: Debug package metadata
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== Package directory ==="
+        ls -la packages/llama-cpp-stb/
+
+        echo "=== Package metadata ==="
+        grep -nE '^(TERMUX_PKG_NAME|PKG_NAME|TERMUX_PKG_DEPENDS|TERMUX_PKG_BUILD_DEPENDS)=' \
+          packages/llama-cpp-stb/build.sh || true
+
+        echo "=== Package references ==="
+        grep -R -n 'llama-cpp-stb' \
+          .github/workflows scripts repo.json packages/llama-cpp-stb \
+          || true
+
     - name: Build packages
       if: ${{ steps.build-info.outputs.skip-building != 'true' }}
       run: |
