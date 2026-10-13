@@ -350,6 +350,24 @@ jobs:
         grep -nE 'TERMUX_PKG_NAME|PKG_NAME|package_name|package.*not found|No package' \
           build-package.sh scripts/build/*.sh scripts/properties.sh 2>/dev/null || true
 
+    - name: Debug package search paths
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== build-package.sh search logic ==="
+        sed -n '690,740p' build-package.sh
+
+        echo "=== Docker package visibility ==="
+        ./scripts/run-docker.sh bash -lc '
+          echo "PWD=$PWD"
+          echo "TERMUX_SCRIPTDIR=${TERMUX_SCRIPTDIR:-unset}"
+          ls -ld /home/builder/termux-packages
+          ls -ld /home/builder/termux-packages/packages
+          ls -ld /home/builder/termux-packages/packages/llama-cpp-stb
+          ls -l /home/builder/termux-packages/packages/llama-cpp-stb/build.sh
+        '
+
     - name: Build packages
       if: ${{ steps.build-info.outputs.skip-building != 'true' }}
       run: |
