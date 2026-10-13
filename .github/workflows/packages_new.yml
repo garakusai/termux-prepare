@@ -338,6 +338,18 @@ jobs:
           .github/workflows scripts repo.json packages/llama-cpp-stb \
           || true
 
+    - name: Debug package name and dependencies
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== build.sh ==="
+        nl -ba packages/llama-cpp-stb/build.sh | sed -n '1,100p'
+
+        echo "=== Package name handling in build scripts ==="
+        grep -nE 'TERMUX_PKG_NAME|PKG_NAME|package_name|package.*not found|No package' \
+          build-package.sh scripts/build/*.sh scripts/properties.sh 2>/dev/null || true
+
     - name: Build packages
       if: ${{ steps.build-info.outputs.skip-building != 'true' }}
       run: |
