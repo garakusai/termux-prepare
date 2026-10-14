@@ -29,7 +29,7 @@ permissions: {} # none
 
 concurrency:
   # if this is a PR event, group = "pr-<number>", otherwise group = run_id so it never collides with other runs
-  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  group: ${{ case(github.event_name == 'pull_request', format('pr-{0}', github.event.pull_request.number), github.run_id) }}
   # only cancel in-progress when it’s a PR
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -37,7 +37,7 @@ jobs:
   build:
     permissions:
       contents: read # actions/upload-artifact doesn't need contents: write
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       max-parallel: 4
       matrix:
@@ -77,7 +77,7 @@ jobs:
       fail-fast: false
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 1000
 
@@ -155,6 +155,17 @@ jobs:
 
         OLD_COMMIT="$OLD_COMMIT" HEAD_COMMIT="$HEAD_COMMIT" GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" scripts/utils/termux_reuse_pr_build_artifacts.sh "${{ github.event_name }}" "${{ matrix.target_arch }}" || true
 
+        # A subpackage goes to the repository named by TERMUX_SUBPKG_REPO
+        # (main, x11 or root), or to the repository of its parent package.
+        subpkg_repo_name() {
+          local target
+          target="$(sed -nE "s/^TERMUX_SUBPKG_REPO=[\"']?([^\"']*)[\"']?\$/\\1/p" "$1")"
+          case "$target" in
+            main|x11|root) echo "termux-$target" ;;
+            *) echo "$2" ;;
+          esac
+        }
+
         if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
           # GitHub sometimes add merge commits at the end
           # To prevent user confusion, filter them with --no-merges
@@ -191,7 +202,7 @@ jobs:
                   # If there are subpackages we want to create a list of those
                   # as well
                   for file in $(find "${repo_path}/${pkg}/" -maxdepth 1 -type f -name \*.subpackage.sh | sort); do
-                    echo "$(basename "${file%%.subpackage.sh}")" >> ./built_${repo}_subpackages.txt
+                    echo "$(basename "${file%%.subpackage.sh}")" >> ./built_$(subpkg_repo_name "$file" "$repo")_subpackages.txt
                   done
                 else
                   echo "$pkg" >> ./deleted_${repo}_packages
@@ -212,7 +223,7 @@ jobs:
                 found=true
                 echo "$pkg" >> ./built_${repo}_packages.txt
                 for subpkg in $(find "${repo_path}/${pkg}/" -maxdepth 1 -type f -name \*.subpackage.sh | sort); do
-                  echo "$(basename "${subpkg%%.subpackage.sh}")" >> ./built_${repo}_subpackages.txt
+                  echo "$(basename "${subpkg%%.subpackage.sh}")" >> ./built_$(subpkg_repo_name "$subpkg" "$repo")_subpackages.txt
                 done
               fi
             done
@@ -248,6 +259,21 @@ jobs:
         done
 
         echo "packages: ${packages[*]}"
+
+        skip_building=false
+        if grep -qx 'skip-building=true' "$GITHUB_OUTPUT"; then
+          skip_building=true
+        elif [[ "${#packages[@]}" -gt 0 ]]; then
+          set +e
+          DRY_RUN_OUTPUT=$(./scripts/bin/build-package-dry-run-simulation.sh -I -C -a "${{ matrix.target_arch }}" "${packages[@]}" 2>&1)
+          DRY_RUN_RC=$?
+          set -e
+          echo "$DRY_RUN_OUTPUT"
+          if [ "$DRY_RUN_RC" -eq 85 ]; then
+            skip_building=true
+          fi
+        fi
+        echo "skip-building=$skip_building" >> $GITHUB_OUTPUT
 
         free_space='false'
         if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -315,6 +341,94 @@ jobs:
       if: ${{ steps.build-info.outputs.free-space == 'true' && steps.build-info.outputs.skip-building != 'true' }}
       run: |
         ./scripts/free-space.sh
+
+    - name: List packages that are still installed on the server
+      if: ${{ steps.build-info.outputs.free-space == 'true' && steps.build-info.outputs.skip-building != 'true' && runner.debug }}
+      run: |
+        dpkg-query -W -f='${Installed-size} ${Package}\n' | sort -n
+
+    - name: List directory size for debug
+      if: ${{ steps.build-info.outputs.free-space == 'true' && steps.build-info.outputs.skip-building != 'true' && runner.debug }}
+      run: |
+        size() {
+          echo "Directory size info for '$1':"
+          du --bytes "$1" --max-depth 1 | sort -n
+          echo
+          echo
+          echo
+        }
+        size /
+        size /usr
+        size /var
+        size /var/lib
+        size /var/
+
+    - name: Debug package recipe
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== Working directory ==="
+        pwd
+
+        echo "=== repo.json ==="
+        jq 'del(.pkg_format)' repo.json
+
+        echo "=== Package recipe on host ==="
+        find . -type f -path '*/llama-cpp-stb/build.sh' -print
+
+        echo "=== Docker runner script ==="
+        sed -n '1,240p' scripts/run-docker.sh
+
+        echo "=== Build package script options ==="
+        ./build-package.sh --help || true
+
+    - name: Debug package metadata
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== Package directory ==="
+        ls -la packages/llama-cpp-stb/
+
+        echo "=== Package metadata ==="
+        grep -nE '^(TERMUX_PKG_NAME|PKG_NAME|TERMUX_PKG_DEPENDS|TERMUX_PKG_BUILD_DEPENDS)=' \
+          packages/llama-cpp-stb/build.sh || true
+
+        echo "=== Package references ==="
+        grep -R -n 'llama-cpp-stb' \
+          .github/workflows scripts repo.json packages/llama-cpp-stb \
+          || true
+
+    - name: Debug package name and dependencies
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== build.sh ==="
+        nl -ba packages/llama-cpp-stb/build.sh | sed -n '1,100p'
+
+        echo "=== Package name handling in build scripts ==="
+        grep -nE 'TERMUX_PKG_NAME|PKG_NAME|package_name|package.*not found|No package' \
+          build-package.sh scripts/build/*.sh scripts/properties.sh 2>/dev/null || true
+
+    - name: Debug package search paths
+      shell: bash
+      run: |
+        set -euxo pipefail
+
+        echo "=== build-package.sh search logic ==="
+        sed -n '690,740p' build-package.sh
+
+        echo "=== Docker package visibility ==="
+        ./scripts/run-docker.sh bash -lc '
+          echo "PWD=$PWD"
+          echo "TERMUX_SCRIPTDIR=${TERMUX_SCRIPTDIR:-unset}"
+          ls -ld /home/builder/termux-packages
+          ls -ld /home/builder/termux-packages/packages
+          ls -ld /home/builder/termux-packages/packages/llama-cpp-stb
+          ls -l /home/builder/termux-packages/packages/llama-cpp-stb/build.sh
+        '
 
     - name: Build packages
       if: ${{ steps.build-info.outputs.skip-building != 'true' }}
@@ -401,7 +515,7 @@ jobs:
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}
         path: checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}.txt
@@ -409,7 +523,7 @@ jobs:
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: debs_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}
         path: ./artifacts
@@ -424,7 +538,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Randomise buildorder.py test
       run: ./scripts/bin/test-buildorder-random
     - name: Randomise buildorder.py test (aarch64)
@@ -452,9 +566,9 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Get *.deb files
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         path: ./
     - name: Check packages using Packages.bz2
@@ -519,9 +633,9 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Get *.deb files
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         path: ./
     - name: Upload to packages.termux.dev
@@ -568,6 +682,15 @@ jobs:
               if ! aptly_publish_repo; then
                 exit 1
               fi
+
+              # Publish to staging repo if we haven't already
+              if [[ "$REPOSITORY_DISTRIBUTION" != "staging" ]]; then
+                REPOSITORY_DISTRIBUTION=staging
+                if ! aptly_publish_repo; then
+                  exit 1
+                fi
+              fi
             fi
           fi
         done
+
