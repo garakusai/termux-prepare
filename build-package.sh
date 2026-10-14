@@ -724,6 +724,7 @@ for package_directory in "${TERMUX_PACKAGES_DIRECTORIES[@]}"; do
 done
 
 echo "=== END PACKAGE SEARCH DEBUG ==="
+
 # END
 		# Check the package to build:
 		TERMUX_PKG_NAME="$(basename "${PACKAGE_LIST[i]}")"
