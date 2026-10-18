@@ -20,64 +20,11 @@ TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
 -DGGML_VULKAN=ON
 -DGGML_VULKAN_SHADERS_GEN_TOOLCHAIN=$TERMUX_PKG_BUILDER_DIR/host-toolchain.cmake
 -DGGML_OPENCL=ON
--DCMAKE_VERBOSE_MAKEFILE=ON
 "
 
 # XXX: llama.cpp uses `int64_t`, but on 32-bit Android `size_t` is `int32_t`.
 # XXX: I don't think it will work if we simply casting it.
 TERMUX_PKG_EXCLUDED_ARCHES="arm, i686, x86_64"
-
-if [[ -n "${GGML_CONFIGURE_ARGS:-}" ]]; then
-	TERMUX_PKG_EXTRA_CONFIGURE_ARGS="${TERMUX_PKG_EXTRA_CONFIGURE_ARGS} ${GGML_CONFIGURE_ARGS}"
-fi
-
-# This auto update function throttles the update frequency
-# of the package to set `$update_interval`, this is useful
-# for packages that make very frequent tags like `jackett`
-# or `llama-cpp` to not spam the commit history, CI and repos.
-termux_pkg_auto_update() {
-	local origin_url last_autoupdate
-	# Throttle auto updates to once every 2 weeks.
-	local update_interval="$((14 * 86400))"
-
-	# Get the git history
-	if origin_url="$(git config --get remote.origin.url)"; then
-		git fetch --quiet "${origin_url}" || {
-			echo "WARN: Unable to fetch '${origin_url}'"
-			echo "WARN: Skipping auto update for '$TERMUX_PKG_NAME'"
-			return
-		}
-	fi
-
-	# When was `llama-cpp` last autoupdated? (Unix epoch timestamp)
-	last_autoupdate="$(
-		git log \
-		--author="Termux Github Actions <contact@termux.dev>" \
-		-n1 \
-		--pretty=format:%at \
-		-- "$TERMUX_PKG_BUILDER_DIR/build.sh"
-	)"
-
-
-	if (( last_autoupdate > EPOCHSECONDS - update_interval )); then
-		local t days hrs mins secs
-		(( t = EPOCHSECONDS - last_autoupdate, days = t/86400, t %= 86400, secs= t%60, t /= 60, mins = t%60, hrs = t/60 ))
-
-		printf 'INFO: Last updated %dd%dh%02dm%02ds ago.\n' "$days" "$hrs" "$mins" "$secs"
-		printf 'INFO: Which is less than the desired %sd minimum update interval.\n' "$(( update_interval / 86400 ))"
-		return
-	fi
-
-	local latest_tag
-	latest_tag="$(
-		termux_github_api_get_tag "${TERMUX_PKG_SRCURL}" "${TERMUX_PKG_UPDATE_TAG_TYPE}"
-	)"
-
-	if [[ -z "${latest_tag}" ]]; then
-		termux_error_exit "Unable to get tag from ${TERMUX_PKG_SRCURL}"
-	fi
-	termux_pkg_upgrade_version "0.0.0-${latest_tag}"
-}
 
 termux_step_pre_configure() {
 	export PATH="$NDK/shader-tools/linux-x86_64:$PATH"
