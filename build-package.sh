@@ -108,6 +108,10 @@ source "$TERMUX_SCRIPTDIR/scripts/build/setup/termux_setup_crystal.sh"
 # shellcheck source=scripts/build/setup/termux_setup_dotnet.sh
 source "$TERMUX_SCRIPTDIR/scripts/build/setup/termux_setup_dotnet.sh"
 
+# Utility function for setting up Electron-based applications.
+# shellcheck source=scripts/build/setup/termux_setup_electron.sh
+source "$TERMUX_SCRIPTDIR/scripts/build/setup/termux_setup_electron.sh"
+
 # Utility function for setting up Flang toolchain.
 # shellcheck source=scripts/build/setup/termux_setup_flang.sh
 source "$TERMUX_SCRIPTDIR/scripts/build/setup/termux_setup_flang.sh"
@@ -707,25 +711,7 @@ for (( i=0; i < ${#PACKAGE_LIST[@]}; i++ )); do
 			done
 			exit
 		fi
-# BGN
-echo "=== PACKAGE SEARCH DEBUG ==="
-echo "PWD=$PWD"
-echo "TERMUX_SCRIPTDIR=${TERMUX_SCRIPTDIR-<unset>}"
-echo "TERMUX_PKG_NAME=${TERMUX_PKG_NAME-<unset>}"
 
-declare -p TERMUX_PACKAGES_DIRECTORIES 2>&1
-declare -p PACKAGE_LIST 2>&1
-
-for package_directory in "${TERMUX_PACKAGES_DIRECTORIES[@]}"; do
-    echo "CHECK: ${TERMUX_SCRIPTDIR-<unset>}/${package_directory}/llama-cpp-stb"
-    if [[ -d "${TERMUX_SCRIPTDIR}/${package_directory}/llama-cpp-stb" ]]; then
-        echo "FOUND: ${TERMUX_SCRIPTDIR}/${package_directory}/llama-cpp-stb"
-    fi
-done
-
-echo "=== END PACKAGE SEARCH DEBUG ==="
-
-# END
 		# Check the package to build:
 		TERMUX_PKG_NAME="$(basename "${PACKAGE_LIST[i]}")"
 		TERMUX_PKG_BUILDER_DIR=""
