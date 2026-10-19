@@ -1,6 +1,6 @@
 --- a/ggml/src/ggml-cpu/CMakeLists.txt
 +++ b/ggml/src/ggml-cpu/CMakeLists.txt
-@@ -252,6 +252,18 @@
+@@ -252,6 +252,20 @@
                      endif()
                      list(APPEND ARCH_FLAGS "-march=${ARM_MCPU}${ARCH_TAGS}")
                      ggml_add_cpu_backend_features(${GGML_CPU_NAME} arm ${ARCH_DEFINITIONS})
@@ -8,10 +8,12 @@
 +                    # -march=armv8.2-a+fp16+rcpc+dotprod
 +                    # -mcpu=cortex-a76.cortex-a55+fp16+rcpc+dotprod
 +                    # GGML_USE_DOTPROD / GGML_USE_FP16_VECTOR_ARITHMETIC
-+                    message(STATUS "Override -march=armv8.2-a+fp16+rcpc+dotprod / -mcpu=cortex-a76.cortex-a55+fp16+rcpc+dotprod")
++                    message(STATUS "Use [-mcpu=cortex-a76+fp16+rcpc+dotprod] instead of [-mcpu=cortex-a76.cortex-a55+fp16+rcpc+dotprod] because clang(NDK r30) can't use [-mcpu=cortex-a76.cortex-a55+fp16+rcpc+dotprod].")
++                    message(STATUS "clang: error: unsupported argument 'cortex-a76.cortex-a55+fp16+rcpc+dotprod' to option '-mcpu='")
++                    message(STATUS "Override -march=armv8.2-a+fp16+rcpc+dotprod / -mcpu=cortex-a76+fp16+rcpc+dotprod")
 +                    set(ARM_MCPU "armv8.2-a")
 +                    set(ARCH_TAGS "${ARCH_TAGS}+fp16+rcpc+dotprod")
-+                    set(ARM_NATIVE_FLAG "-mcpu=cortex-a76.cortex-a55+fp16+rcpc+dotprod")
++                    set(ARM_NATIVE_FLAG "-mcpu=cortex-a76+fp16+rcpc+dotprod")
 +                    list(APPEND ARCH_FLAGS "-march=${ARM_MCPU}${ARCH_TAGS}")
 +                    list(APPEND ARCH_FLAGS "${ARM_NATIVE_FLAG}")
 +                    list(APPEND ARCH_DEFINITIONS GGML_USE_DOTPROD)
