@@ -1,0 +1,17 @@
+--- a/ggml/src/ggml-cpu/CMakeLists.txt
++++ b/ggml/src/ggml-cpu/CMakeLists.txt
+@@ -252,6 +252,14 @@
+                     endif()
+                     list(APPEND ARCH_FLAGS "-march=${ARM_MCPU}${ARCH_TAGS}")
+                     ggml_add_cpu_backend_features(${GGML_CPU_NAME} arm ${ARCH_DEFINITIONS})
++                else()
++                    # -march=armv8-a+lse+crc+sha2+aes+fp16
++                    # GGML_USE_FP16_VECTOR_ARITHMETIC
++                    message(STATUS "Override -march=armv8-a+lse+crc+sha2+aes+fp16")
++                    set(ARM_MCPU "armv8-a")
++                    set(ARCH_TAGS "${ARCH_TAGS}+lse+crc+sha2+aes+fp16")
++                    list(APPEND ARCH_FLAGS "-march=${ARM_MCPU}${ARCH_TAGS}")
++                    list(APPEND ARCH_DEFINITIONS GGML_USE_FP16_VECTOR_ARITHMETIC)
+                 endif()
+             endif()
+ 

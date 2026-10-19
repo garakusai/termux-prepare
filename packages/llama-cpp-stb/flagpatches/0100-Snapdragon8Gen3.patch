@@ -1,0 +1,22 @@
+--- a/ggml/src/ggml-cpu/CMakeLists.txt
++++ b/ggml/src/ggml-cpu/CMakeLists.txt
+@@ -252,6 +252,19 @@
+                     endif()
+                     list(APPEND ARCH_FLAGS "-march=${ARM_MCPU}${ARCH_TAGS}")
+                     ggml_add_cpu_backend_features(${GGML_CPU_NAME} arm ${ARCH_DEFINITIONS})
++                else()
++                    # -march=armv9.2-a+nosve+nossbs+nowfxt+nomemtag
++                    # -mcpu=cortex-x4+nosve+nossbs+nowfxt+nomemtag
++                    # GGML_USE_DOTPROD / GGML_USE_FP16_VECTOR_ARITHMETIC / GGML_USE_MATMUL_INT8 
++                    message(STATUS "Override -march=armv9.2-a+nosve+nossbs+nowfxt+nomemtag / -mcpu=cortex-x4+nosve+nossbs+nowfxt+nomemtag")
++                    set(ARM_MCPU "armv9.2-a")
++                    set(ARCH_TAGS "${ARCH_TAGS}+nosve+nossbs+nowfxt+nomemtag")
++                    set(ARM_NATIVE_FLAG "-mcpu=cortex-x4+nosve+nossbs+nowfxt+nomemtag")
++                    list(APPEND ARCH_FLAGS "-march=${ARM_MCPU}${ARCH_TAGS}")
++                    list(APPEND ARCH_FLAGS "${ARM_NATIVE_FLAG}")
++                    list(APPEND ARCH_DEFINITIONS GGML_USE_DOTPROD)
++                    list(APPEND ARCH_DEFINITIONS GGML_USE_FP16_VECTOR_ARITHMETIC)
++                    list(APPEND ARCH_DEFINITIONS GGML_USE_MATMUL_INT8)
+                 endif()
+             endif()
+ 
