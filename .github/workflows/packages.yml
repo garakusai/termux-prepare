@@ -24,7 +24,17 @@ on:
         description: "Free space even if not building large package (useful when building a large number of packages)"
         type: boolean
         default: false
-
+  workflow_call:
+    inputs:
+      packages:
+        description: "A space-separated names of packages selected for rebuilding"
+        required: true
+        type: string
+      free-space:
+        description: "Free space even if not building large package"
+        required: false
+        type: boolean
+        default: false
 permissions: {} # none
 
 concurrency:
@@ -70,12 +80,14 @@ jobs:
     - name: Preparetion patches
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
-        MANUAL_INPUT_PACKAGES: ${{ github.event.inputs.packages }}
+        MANUAL_INPUT_PACKAGES: ${{ inputs.packages }}
+        # MANUAL_INPUT_PACKAGES: ${{ github.event.inputs.packages }}
       id: copy-patch
       run: |
         
         declare -a packages=()
-        if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+        if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "${{ github.event_name }}" != "workflow_call" ]; then
+        # if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
           for repo_path in $(jq --raw-output 'del(.pkg_format) | keys | .[]' repo.json); do
             repo=$(jq --raw-output '.["'${repo_path}'"].name' repo.json)
             if [ -f "./built_${repo}_packages.txt" ]; then
@@ -99,7 +111,8 @@ jobs:
     - name: Gather build summary
       id: build-info
       env:
-        MANUAL_INPUT_PACKAGES: ${{ github.event.inputs.packages }}
+        MANUAL_INPUT_PACKAGES: ${{ inputs.packages }}
+        # MANUAL_INPUT_PACKAGES: ${{ github.event.inputs.packages }}
       run: |
         # We are intentionally not using .commits[0].id and .commits[-1].id as github seems to
         # only send 20 commits in the payload for github action runs instead of the 2048 documented
@@ -109,7 +122,8 @@ jobs:
         # https://docs.github.com/en/webhooks/webhook-events-and-payloads#push
         OLD_COMMIT="${{ github.event.before }}"
         HEAD_COMMIT="${{ github.event.after }}"
-        if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+        if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "${{ github.event_name }}" != "workflow_call" ]; then
+        # if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
           BASE_REF="${{ github.event.pull_request.base.ref }}"
           git fetch origin "${BASE_REF:-master}" 2>/dev/null
           BASE_COMMIT="$(git merge-base "origin/${BASE_REF:-master}" "HEAD")"
@@ -152,7 +166,8 @@ jobs:
           esac
         }
 
-        if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+        if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "${{ github.event_name }}" != "workflow_call" ]; then
+        # if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
           # GitHub sometimes add merge commits at the end
           # To prevent user confusion, filter them with --no-merges
           # Process tag '%ci:no-build' that may be added as line to commit message.
@@ -262,8 +277,10 @@ jobs:
         echo "skip-building=$skip_building" >> $GITHUB_OUTPUT
 
         free_space='false'
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          free_space=${{ github.event.inputs.free-space }}
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ] || [ "${{ github.event_name }}" == "workflow_call" ]; then
+        # if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          free_space=${{ inputs.free-space }}
+          # free_space=${{ github.event.inputs.free-space }}
         else
           if grep -qiP '^\s*%ci:free-disk\s*$' <(git log --format="%B" -n 1 --no-merges "HEAD"); then
             free_space=true
@@ -280,7 +297,8 @@ jobs:
         echo "free-space=$free_space" >> $GITHUB_OUTPUT
 
         needs_docker_build=false
-        if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+        if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "${{ github.event_name }}" != "workflow_call" ]; then
+        # if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
           # Build local Docker image if setup scripts were changed.
           # Useful for pull requests submitting changes for both build environment and packages.
           if grep -qP '^scripts/(Dockerfile|properties\.sh|setup-android-sdk\.sh|setup-ubuntu\.sh)$' <<< "$CHANGED_FILES"; then

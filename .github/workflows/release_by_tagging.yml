@@ -6,16 +6,9 @@ on:
       - 'v*'
 
 jobs:
-  trigger:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Call packages.yml
-        env:
-          GH_TOKEN: ${{ secrets.WORKFLOW_TRIGGER_TOKEN }}
-          TAG_NAME: ${{ github.ref_name }}
-        run: |
-          gh workflow run packages.yml \
-            --ref "$TAG_NAME" \
-            -f packages=llama-cpp-stb
+  call-build:
+    uses: ./.github/workflows/packages.yml
+    with:
+      packages: 'llama-cpp-stb' # 固定値
+      free-space: true         # 固定値
 
