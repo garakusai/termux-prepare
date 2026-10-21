@@ -9,6 +9,26 @@ jobs:
   call-build:
     uses: ./.github/workflows/packages.yml
     with:
-      packages: 'llama-cpp-stb' # 固定値
-      free-space: true         # 固定値
+      packages: 'llama-cpp-stb'
+      free-space: true
+  release:
+    runs-on: ubuntu-26.04
+    needs: call-build
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: dist
 
+      - name: Create GitHub Release and upload assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            dist/* \
+            --verify-tag \
+            --generate-notes
