@@ -23,10 +23,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download artifacts
+      - name: Download checksums
         uses: actions/download-artifact@v8
         with:
+          pattern: checksum_*
           path: dist
+          merge-multiple: true
+
+      - name: Download deb
+        uses: actions/download-artifact@v8
+        with:
+          pattern: debs_*
+          path: dist
+          merge-multiple: true
 
       - name: Create GitHub Release and upload assets
         env:
