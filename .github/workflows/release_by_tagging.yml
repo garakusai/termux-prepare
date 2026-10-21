@@ -21,7 +21,6 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
-          name: release-assets
           path: dist
 
       - name: Create GitHub Release and upload assets
