@@ -449,6 +449,17 @@ jobs:
       if: always()
       run: |
         find debs -type f -name "*.deb" -exec sha256sum "{}" \; | sort -k2 | tee checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}.txt
+
+    - name: Debug before upload-artifact
+      run: |
+        echo "PWD=$(pwd)"
+        echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+        ls -ld "$GITHUB_WORKSPACE" || true
+        ls -la "$GITHUB_WORKSPACE" || true
+        ls -la . || true
+        find /home/runner/actions-runner/cached -path '*/externals/node24/bin/node' -type f 2>/dev/null || true
+        test -f "checksum_TensorG4-aarch64-4dd029a3f5fa49cfa513f3044cf6d370cd505368.txt" && echo "artifact file exists" || echo "artifact file missing"
+
     - name: Store checksums for built *.deb files
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
