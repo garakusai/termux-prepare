@@ -48,7 +48,8 @@ jobs:
   build:
     permissions:
       contents: read # actions/upload-artifact doesn't need contents: write
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
+    #runs-on: ubuntu-26.04
     strategy:
       max-parallel: 4
       matrix:
@@ -459,6 +460,39 @@ jobs:
         ls -la . || true
         find /home/runner/actions-runner/cached -path '*/externals/node24/bin/node' -type f 2>/dev/null || true
         test -f "checksum_TensorG4-aarch64-4dd029a3f5fa49cfa513f3044cf6d370cd505368.txt" && echo "artifact file exists" || echo "artifact file missing"
+
+    - name: Debug runner and artifact
+      run: |
+        echo "PWD=$(pwd)"
+        echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+        echo "RUNNER_OS=$RUNNER_OS"
+        echo "RUNNER_ARCH=$RUNNER_ARCH"
+        ls -ld "$GITHUB_WORKSPACE"
+        ls -la "$GITHUB_WORKSPACE"
+        echo "--- externals ---"
+        ls -la /home/runner/actions-runner/cached/2.338.2/externals || true
+        echo "--- node24 ---"
+        ls -la /home/runner/actions-runner/cached/2.338.2/externals/node24/bin || true
+        echo "--- checksum files ---"
+        ls -1 checksum_*.txt || true
+
+    - name: Debug checksum files
+      shell: bash
+      run: |
+        echo "PWD=$(pwd)"
+        echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+        ls -la
+
+        shopt -s nullglob
+        files=(checksum_TensorG4-aarch64-*.txt)
+
+        if ((${#files[@]} > 0)); then
+            echo "matched files:"
+          printf ' - %s\n' "${files[@]}"
+        else
+          echo "no matched files"
+          exit 1
+        fi
 
     - name: Store checksums for built *.deb files
       env:
