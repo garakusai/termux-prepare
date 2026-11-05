@@ -494,6 +494,18 @@ jobs:
           exit 1
         fi
 
+    - name: Debug container suspicion
+      shell: bash
+      run: |
+        echo "PWD=$(pwd)"
+        echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+        echo "--- os-release ---"
+        cat /etc/os-release || true
+        echo "--- home/runner/actions-runner ---"
+        ls -ld /home/runner/actions-runner || true
+        ls -ld /home/runner/actions-runner/cached || true
+        find /home/runner/actions-runner/cached -path '*/externals/node24/bin/node' -type f 2>/dev/null || true
+
     - name: Store checksums for built *.deb files
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
