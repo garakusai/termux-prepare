@@ -1,0 +1,117 @@
+name: repro-node24-externals
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: probe-${{ matrix.slot }}
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        slot: [1, 2, 3, 4, 5, 6, 7, 8]
+
+    steps:
+      - name: Create probe file
+        shell: bash
+        run: |
+          echo "slot=${{ matrix.slot }}" > probe.txt
+          echo "run_id=${GITHUB_RUN_ID}" >> probe.txt
+          echo "run_attempt=${GITHUB_RUN_ATTEMPT}" >> probe.txt
+
+      - name: Probe runner node24 / externals
+        id: probe
+        shell: bash
+        run: |
+          set -u
+
+          CACHED_ROOT=/home/runner/actions-runner/cached
+          CURRENT_DIR="$(find "$CACHED_ROOT" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n1)"
+          RUNNER_DIR="$CACHED_ROOT/$CURRENT_DIR"
+          EXTERNALS="$RUNNER_DIR/externals"
+          NODE24_BIN="$EXTERNALS/node24/bin"
+          NODE24="$NODE24_BIN/node"
+
+          echo "RUNNER_OS=$RUNNER_OS"
+          echo "RUNNER_ARCH=$RUNNER_ARCH"
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          echo "PWD=$(pwd)"
+          echo "CACHED_ROOT=$CACHED_ROOT"
+          echo "CURRENT_DIR=$CURRENT_DIR"
+          echo "RUNNER_DIR=$RUNNER_DIR"
+
+          echo "=== cached root ==="
+          ls -la "$CACHED_ROOT" || true
+
+          echo "=== cached subdirs ==="
+          find "$CACHED_ROOT" -maxdepth 2 -type d | sort || true
+
+          echo "=== runner dir ==="
+          ls -la "$RUNNER_DIR" || true
+
+          echo "=== externals entry ==="
+          ls -ld "$EXTERNALS" || true
+
+          echo "=== externals symlink target ==="
+          readlink "$EXTERNALS" || true
+          readlink -f "$EXTERNALS" || true
+
+          echo "=== /opt/runner-cache ==="
+          ls -ld /opt/runner-cache || true
+          ls -la /opt/runner-cache || true
+
+          echo "=== /opt/runner-cache/externals ==="
+          ls -ld /opt/runner-cache/externals || true
+          ls -la /opt/runner-cache/externals || true
+
+          echo "=== node24 bin ==="
+          ls -la "$NODE24_BIN" || true
+
+          echo "=== node24 executable ==="
+          stat "$NODE24" || true
+
+          if [ -x "$NODE24" ]; then
+            echo "node24_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "node24_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger upload-artifact@v7
+        id: upload
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: repro-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.slot }}
+          path: probe.txt
+          if-no-files-found: error
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## probe-${{ matrix.slot }}"
+            echo ""
+            echo "- node24_ok: \`${{ steps.probe.outputs.node24_ok }}\`"
+            echo "- upload step outcome: \`${{ steps.upload.outcome }}\`"
+            echo "- upload step conclusion: \`${{ steps.upload.conclusion }}\`"
+            echo "- cloud / region: Set up job セクションを目視確認"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail when node24 is missing or upload failed
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.probe.outputs.node24_ok }}" != "true" ]; then
+            echo "node24 missing"
+            exit 1
+          fi
+
+          if [ "${{ steps.upload.outcome }}" != "success" ]; then
+            echo "upload-artifact failed"
+            exit 1
+          fi
+
