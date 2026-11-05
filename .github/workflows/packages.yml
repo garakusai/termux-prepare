@@ -506,6 +506,28 @@ jobs:
         ls -ld /home/runner/actions-runner/cached || true
         find /home/runner/actions-runner/cached -path '*/externals/node24/bin/node' -type f 2>/dev/null || true
 
+
+    - name: Debug runner cached tree
+      shell: bash
+      run: |
+        echo "=== cached root ==="
+        ls -la /home/runner/actions-runner/cached || true
+
+        echo "=== cached subdirs ==="
+        find /home/runner/actions-runner/cached -maxdepth 2 -type d | sort || true
+
+        echo "=== expected runner version dir ==="
+        ls -la /home/runner/actions-runner/cached/2.338.2 || true
+
+        echo "=== externals ==="
+        ls -la /home/runner/actions-runner/cached/2.338.2/externals || true
+
+        echo "=== node24 bin ==="
+        ls -la /home/runner/actions-runner/cached/2.338.2/externals/node24/bin || true
+
+        echo "=== node24 executable ==="
+        stat /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node || true
+
     - name: Store checksums for built *.deb files
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
