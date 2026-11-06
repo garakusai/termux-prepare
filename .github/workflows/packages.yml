@@ -74,6 +74,16 @@ jobs:
 
       fail-fast: false
     steps:
+- name: Debug context
+  run: |
+    echo "event_name=${{ github.event_name }}"
+    echo "ref=${{ github.ref }}"
+    echo "ref_name=${{ github.ref_name }}"
+    echo "sha=${{ github.sha }}"
+    echo "packages=${{ inputs.packages }}"
+    echo "free-space=${{ inputs.free-space }}"
+    echo "has_APTLY_API_AUTH=${{ secrets.APTLY_API_AUTH != '' }}"
+
     - name: Clone repository
       uses: actions/checkout@v7
       with:
