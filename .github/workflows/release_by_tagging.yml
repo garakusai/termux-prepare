@@ -7,10 +7,15 @@ on:
 
 jobs:
   call-build:
+    permissions:
+      contents: write
+      packages: write
     uses: ./.github/workflows/packages.yml
     with:
       packages: 'llama-cpp-stb'
       free-space: true
+    secrets: inherit
+    
   release:
     runs-on: ubuntu-26.04
     needs: call-build
