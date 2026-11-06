@@ -464,6 +464,9 @@ jobs:
     - name: Debug runner cached tree
       shell: bash
       run: |
+        echo "=== current directory ==="
+        pwd || true
+
         echo "=== cached root ==="
         ls -la /home/runner/actions-runner/cached || true
 
