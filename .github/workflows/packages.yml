@@ -449,6 +449,31 @@ jobs:
       if: always()
       run: |
         find debs -type f -name "*.deb" -exec sha256sum "{}" \; | sort -k2 | tee checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}.txt
+        
+    - name: Debug runner cached tree
+      shell: bash
+      run: |
+        echo "=== current directory ==="
+        pwd || true
+
+        echo "=== cached root ==="
+        ls -la /home/runner/actions-runner/cached || true
+
+        echo "=== cached subdirs ==="
+        find /home/runner/actions-runner/cached -maxdepth 2 -type d | sort || true
+
+        echo "=== expected runner version dir ==="
+        ls -la /home/runner/actions-runner/cached/2.338.2 || true
+
+        echo "=== externals ==="
+        ls -la /home/runner/actions-runner/cached/2.338.2/externals || true
+
+        echo "=== node24 bin ==="
+        ls -la /home/runner/actions-runner/cached/2.338.2/externals/node24/bin || true
+
+        echo "=== node24 executable ==="
+        stat /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node || true
+
     - name: Store checksums for built *.deb files
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
