@@ -473,6 +473,16 @@ jobs:
 
         echo "=== node24 executable ==="
         stat /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node || true
+        
+        echo "=== if external is symlink, check reference is correct ==="
+        if [ -L "/home/runner/actions-runner/cached/2.338.2/externals" ]; then
+          echo "symbolic link" || true
+          ls -la /opt/runner-cache/externals || true
+          ls -la /opt/runner-cache/externals/node24/bin || true
+          ls -la /opt/runner-cache/externals/node24/bin/node || true
+        else
+          echo "external is not symbolic link" || true
+        fi
 
     - name: Store checksums for built *.deb files
       env:
