@@ -474,6 +474,9 @@ jobs:
         echo "=== node24 executable ==="
         stat /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node || true
         
+        echo "=== check mount /opt ==="
+        mount | grep "/opt" || true
+        
         echo "=== if external is symlink, check reference is correct ==="
         if [ -L "/home/runner/actions-runner/cached/2.338.2/externals" ]; then
           echo "symbolic link" || true
