@@ -48,8 +48,7 @@ jobs:
   build:
     permissions:
       contents: read # actions/upload-artifact doesn't need contents: write
-    runs-on: ubuntu-24.04
-    #runs-on: ubuntu-26.04
+    runs-on: ubuntu-26.04
     strategy:
       max-parallel: 4
       matrix:
@@ -75,7 +74,8 @@ jobs:
       fail-fast: false
     steps:
     - name: Clone repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v6
+      #uses: actions/checkout@v7
       with:
         fetch-depth: 1000
 
@@ -492,7 +492,8 @@ jobs:
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v6
+      #uses: actions/upload-artifact@v7
       with:
         name: checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}
         path: checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}.txt
@@ -500,7 +501,8 @@ jobs:
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v6
+      #uses: actions/upload-artifact@v7
       with:
         name: debs_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}
         path: ./artifacts
@@ -515,7 +517,8 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v6
+      #uses: actions/checkout@v7
     - name: Randomise buildorder.py test
       run: ./scripts/bin/test-buildorder-random
     - name: Randomise buildorder.py test (aarch64)
@@ -543,9 +546,11 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v6
+      #uses: actions/checkout@v7
     - name: Get *.deb files
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v7
+      #uses: actions/download-artifact@v8
       with:
         path: ./
     - name: Check packages using Packages.bz2
@@ -579,9 +584,11 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v6
+      #uses: actions/checkout@v7
     - name: Get *.deb files
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v7
+      #uses: actions/download-artifact@v8
       with:
         path: ./
     - name: Upload to packages.termux.dev
