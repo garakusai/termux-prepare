@@ -73,6 +73,44 @@ jobs:
 
       fail-fast: false
     steps:
+    - name: Repair runner node24 cache
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        CACHE_DIR="/opt/runner-cache/externals"
+        RUNNER_EXTERNALS_LINK="/home/runner/actions-runner/cached/2.338.2/externals"
+
+        sudo mkdir -p "$CACHE_DIR"
+
+        src_dir="$(
+          find /opt/actions-runner /home/runner/actions-runner \
+            -maxdepth 6 \
+            -type d -name node24 2>/dev/null |
+            head -n1 || true
+        )"
+
+        if [ -n "$src_dir" ]; then
+          sudo mkdir -p "$CACHE_DIR/node24"
+          sudo cp -a "$src_dir/." "$CACHE_DIR/node24/"
+        else
+          sysnode="$(command -v node || true)"
+          if [ -z "$sysnode" ]; then
+            echo "node24 source not found and no node binary found" >&2
+            exit 1
+          fi
+
+          sudo mkdir -p "$CACHE_DIR/node24/bin"
+          sudo ln -sfn "$sysnode" "$CACHE_DIR/node24/bin/node"
+        fi
+
+        sudo mkdir -p "$(dirname "$RUNNER_EXTERNALS_LINK")"
+        sudo rm -rf "$RUNNER_EXTERNALS_LINK"
+        sudo ln -sfn "$CACHE_DIR" "$RUNNER_EXTERNALS_LINK"
+
+        stat "$RUNNER_EXTERNALS_LINK/node24/bin/node"
+        "$RUNNER_EXTERNALS_LINK/node24/bin/node" -v || true
+
     - name: Clone repository
       uses: actions/checkout@v6
       #uses: actions/checkout@v7
