@@ -526,6 +526,55 @@ jobs:
           echo "external is not symbolic link" || true
         fi
 
+    - name: Debug node24 symlink
+      env:
+        ACTIONS_RUNNER_DEBUG: true
+      run: |
+        set -euo pipefail
+
+        node_link="/home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node"
+
+        hostname
+        uname -a
+        pwd
+        id
+
+        echo "=== ls -l ==="
+        ls -l "$node_link" || true
+
+        echo "=== ls -lL ==="
+        ls -lL "$node_link" || true
+
+        echo "=== readlink ==="
+        readlink "$node_link" || true
+
+        echo "=== readlink -f ==="
+        readlink -f "$node_link" || true
+
+        echo "=== readlink -e ==="
+        readlink -e "$node_link" || true
+
+        echo "=== test -x ==="
+        test -x "$node_link" && echo "executable" || echo "not executable"
+
+        echo "=== stat -L ==="
+        stat -L "$node_link" || true
+
+        echo "=== find broken links ==="
+        find /home/runner/actions-runner /opt/actions-runner \
+          -maxdepth 8 \
+          -type l \
+          ! -exec test -e {} \; -print || true
+
+        echo "=== node -v via link ==="
+        "$node_link" -v || true
+
+        echo "=== which node ==="
+        command -v node || true
+
+        echo "=== system node version ==="
+        node -v || true
+    
     - name: Store checksums for built *.deb files
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
