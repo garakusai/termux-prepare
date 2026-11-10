@@ -74,8 +74,7 @@ jobs:
       fail-fast: false
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
-      #uses: actions/checkout@v7
+      uses: actions/checkout@v7
       with:
         fetch-depth: 1000
 
@@ -474,75 +473,12 @@ jobs:
 
         echo "=== node24 executable ==="
         stat /home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node || true
-        
-        echo "=== check mount /opt ==="
-        mount | grep "/opt" || true
-        
-        echo "=== if external is symlink, check reference is correct ==="
-        if [ -L "/home/runner/actions-runner/cached/2.338.2/externals" ]; then
-          echo "symbolic link" || true
-          ls -la /opt/runner-cache/externals || true
-          ls -la /opt/runner-cache/externals/node24/bin || true
-          ls -la /opt/runner-cache/externals/node24/bin/node || true
-        else
-          echo "external is not symbolic link" || true
-        fi
 
-    - name: Debug node24 symlink
-      env:
-        ACTIONS_RUNNER_DEBUG: true
-      run: |
-        set -euo pipefail
-
-        node_link="/home/runner/actions-runner/cached/2.338.2/externals/node24/bin/node"
-
-        hostname
-        uname -a
-        pwd
-        id
-
-        echo "=== ls -l ==="
-        ls -l "$node_link" || true
-
-        echo "=== ls -lL ==="
-        ls -lL "$node_link" || true
-
-        echo "=== readlink ==="
-        readlink "$node_link" || true
-
-        echo "=== readlink -f ==="
-        readlink -f "$node_link" || true
-
-        echo "=== readlink -e ==="
-        readlink -e "$node_link" || true
-
-        echo "=== test -x ==="
-        test -x "$node_link" && echo "executable" || echo "not executable"
-
-        echo "=== stat -L ==="
-        stat -L "$node_link" || true
-
-        echo "=== find broken links ==="
-        find /home/runner/actions-runner /opt/actions-runner \
-          -maxdepth 8 \
-          -type l \
-          ! -exec test -e {} \; -print || true
-
-        echo "=== node -v via link ==="
-        "$node_link" -v || true
-
-        echo "=== which node ==="
-        command -v node || true
-
-        echo "=== system node version ==="
-        node -v || true
-    
     - name: Store checksums for built *.deb files
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
       if: always()
-      uses: actions/upload-artifact@v6
-      #uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7
       with:
         name: checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}
         path: checksum_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}.txt
@@ -550,8 +486,7 @@ jobs:
       env:
         ARCHFLAG: ${{ matrix.ARCHFLAG }}
       if: always()
-      uses: actions/upload-artifact@v6
-      #uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7
       with:
         name: debs_${{ env.ARCHFLAG }}-${{ matrix.target_arch }}-${{ github.sha }}
         path: ./artifacts
@@ -566,8 +501,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
-      #uses: actions/checkout@v7
+      uses: actions/checkout@v7
     - name: Randomise buildorder.py test
       run: ./scripts/bin/test-buildorder-random
     - name: Randomise buildorder.py test (aarch64)
@@ -592,14 +526,12 @@ jobs:
       contents: read
     if: github.repository == 'termux/termux-packages' && github.ref != 'refs/heads/master'
     needs: build
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-26.04
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
-      #uses: actions/checkout@v7
+      uses: actions/checkout@v7
     - name: Get *.deb files
-      uses: actions/download-artifact@v7
-      #uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v8
       with:
         path: ./
     - name: Check packages using Packages.bz2
@@ -633,11 +565,9 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
     - name: Clone repository
-      uses: actions/checkout@v6
-      #uses: actions/checkout@v7
+      uses: actions/checkout@v7
     - name: Get *.deb files
-      uses: actions/download-artifact@v7
-      #uses: actions/download-artifact@v8
+      uses: actions/download-artifact@v8
       with:
         path: ./
     - name: Upload to packages.termux.dev
