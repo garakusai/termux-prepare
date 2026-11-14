@@ -21,6 +21,21 @@ for repo in ${repos}; do
 
 	total_packages="$(find "${repo}" -mindepth 1 -maxdepth 1 -type d | sort)"
 	filter_packages="${total_packages}"
+
+	# Skip empty root-packages and x11-packages repositories.
+	if [[ -z "${total_packages}" ]]; then
+		case "${repo}" in
+			root-packages|x11-packages)
+				echo "INFO: Skipping empty repository: ${repo}"
+				continue
+				;;
+			*)
+				echo "ERROR: repository ${repo} is empty!" 1>&2
+				exit 1
+				;;
+		esac
+	fi
+
 	if [[ -n "${TERMUX_ARCH}" ]]; then
 		filter_packages="$(grep -rLE "^TERMUX_PKG_EXCLUDED_ARCHES=.*${TERMUX_ARCH}" --include=build.sh "${repo}" | cut -d/ -f1,2 | sort || :)"
 	fi
