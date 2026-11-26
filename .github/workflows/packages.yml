@@ -551,7 +551,7 @@ jobs:
           tar xf "$archive"
         done
 
-        ./scripts/utils/termux_check_file_conflicts.sh debs
+        ./scripts/utils/termux_check_file_conflicts.sh debs debs-by-arch
 
   upload:
     concurrency:
